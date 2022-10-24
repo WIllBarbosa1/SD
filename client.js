@@ -6,8 +6,8 @@ const {
 } = require("./Middleware/index");
 const readline = require("readline");
 
-handleStart("CLIENT", (a, b) => {
-  console.log("Nova mensagem recebida: ", a);
+handleStart("CLIENT", (type, msg) => {
+  console.log("Nova mensagem recebida: ", msg);
 });
 
 const rl = readline.createInterface({

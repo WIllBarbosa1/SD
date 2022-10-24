@@ -73,11 +73,11 @@ function handleNewService(service, address) {
   }
 }
 
-function handleSendOne(type, msg) {
+function handleSendOne(msg, type) {
   let message = Buffer.from(`${type}:${msg}`);
-  let sendList = discoveryServices[type];
-  let [adress, port] = String(sendList[0]).split(":");
-  
+  let [sendDestiny] = discoveryServices[type];
+  let [adress, port] = String(sendDestiny).split(":");
+
   socketComunication.send(message, 0, message.length, port, adress);
 }
 
