@@ -20,8 +20,8 @@ const handleServerKeepAlive = (server) => {
 const handleSendMessage = (msg) => {
     let message = Buffer.from(`MESSAGE:${msg}`)
     let [adress, port] = String(servers[0]).split(':')
-    console.log('Adress: ', adress);
-    console.log('Port: ', port);
+    // console.log('Adress: ', adress);
+    // console.log('Port: ', port);
     client.send(message,0, message.length, port, adress)
 }
 
@@ -37,7 +37,9 @@ client.on('message', function (msg, {address, port}) {
     if (action === 'SERVER') {
         handleServerKeepAlive(`${address}:${port}`)
     } else if (action === 'MESSAGE') {
-        if (ip.address !== address) {
+        // console.log('Ip: ', ip.address);
+        // console.log('Address: ', address);
+        if (ip.address() !== address) {
             console.log('Nova mensagem: ', message);
         }
     }
