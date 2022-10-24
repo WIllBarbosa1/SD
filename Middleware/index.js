@@ -62,8 +62,6 @@ function handleStart(serviceType, callbackReciver) {
 function handleNewService(service, address) {
   const isValidService = Object.keys(discoveryServices).includes(service);
 
-  console.log("Address: ", address);
-
   if (isValidService) {
     const hasOnList = discoveryServices[service]?.includes(address);
 
@@ -77,8 +75,13 @@ function handleNewService(service, address) {
 function handleSendOne(msg, type) {
   let message = Buffer.from(`${type}:${msg}`);
   let sendList = discoveryServices[type];
+  console.log('Type: ', type);
+  console.log('Message: ', msg);
+  console.log('Lista: ', discoveryServices);
 
   let [adress, port] = String(sendList[0]).split(":");
+  console.log('Address: ', adress);
+  console.log('Port: ', port);
   socketComunication.send(message, 0, message.length, port, adress);
 }
 
@@ -94,5 +97,4 @@ module.exports = {
   handleStart,
   handleSendAll,
   handleSendOne,
-  discoveryServices,
 };
