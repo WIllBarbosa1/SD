@@ -1,5 +1,6 @@
 const dotenv = require("dotenv");
 const dgram = require("dgram");
+const { send } = require("process");
 
 dotenv.config();
 
@@ -72,25 +73,23 @@ function handleNewService(service, address) {
   }
 }
 
-function handleSendOne(msg, type) {
+function handleSendOne(type, msg) {
   let message = Buffer.from(`${type}:${msg}`);
   let sendList = discoveryServices[type];
-  console.log('Type: ', type);
-  console.log('Message: ', msg);
-  console.log('Lista: ', discoveryServices);
-
   let [adress, port] = String(sendList[0]).split(":");
-  console.log('Address: ', adress);
-  console.log('Port: ', port);
+  
   socketComunication.send(message, 0, message.length, port, adress);
 }
 
-function handleSendAll(msg, type) {
+function handleSendAll(type, msg) {
   let message = Buffer.from(`${type}:${msg}`);
   let sendList = discoveryServices[type];
 
-  let [adress, port] = String(sendList[0]).split(":");
-  socketComunication.send(message, 0, message.length, port, adress);
+  sendList.forEach( (destiny, index) => {
+    let [adress, port] = String(destiny).split(":");
+    socketComunication.send(message, 0, message.length, port, adress);
+  });
+  
 }
 
 module.exports = {
