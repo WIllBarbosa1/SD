@@ -5,7 +5,8 @@ const {
   discoveryServices,
 } = require("./Middleware/index");
 
-handleStart("SERVER", (type, msg) => {
-  console.log('Mensagem recebida: ', msg);
-  handleSendAll('CLIENT', msg) 
+handleStart("SERVER", (type, msg, despatcher) => {
+  console.log(`Nova mensagem recebida de ${despatcher}:  ${msg}`);
+
+  handleSendAll('CLIENT', msg, despatcher) 
 });

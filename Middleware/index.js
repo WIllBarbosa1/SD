@@ -1,4 +1,5 @@
 const dotenv = require("dotenv");
+const ip = require("ip");
 const dgram = require("dgram");
 const { send } = require("process");
 
@@ -7,6 +8,7 @@ dotenv.config();
 const SERVICE_PORT = 8080;
 const MULTICAST_PORT = 1900;
 const MULTICAST_ADDRESS = "239.255.255.250";
+const KEEP_ALIVE_TIME = 1000
 
 const socketMultcast = dgram.createSocket("udp4");
 const socketComunication = dgram.createSocket("udp4");
@@ -45,13 +47,13 @@ function handleStart(serviceType, callbackReciver) {
         MULTICAST_PORT,
         MULTICAST_ADDRESS
       );
-    }, 1000);
+    }, KEEP_ALIVE_TIME);
   });
 
   //comunicação
   socketComunication.on("message", function (msg, { address, port }) {
     const [type, message] = String(msg).split(":");
-    callbackReciver(type, message);
+    callbackReciver(type, message, address);
   });
 
   socketComunication.bind(SERVICE_PORT, () => {
@@ -82,12 +84,10 @@ function handleKeepAlive(service, address) {
 function handleClearKeepAlive(type) {
   let sendList = discoveryServices[type];
 
-  console.log('SendList: ', sendList);
-
   sendList.forEach( (destiny, index) => {
     let { keepAliveTime } = destiny
-    if (new Date().getTime() - new Date(keepAliveTime).getTime()  > 1000) {
-      console.log('Lista limpa: ', destiny.address);
+    if (new Date().getTime() - new Date(keepAliveTime).getTime()  > KEEP_ALIVE_TIME) {
+      console.log(`Lista limpa ip removido ${destiny.address}.`);
       discoveryServices[type].splice(index, 1)
     }
   });
@@ -109,7 +109,7 @@ function handleSendOne(msg, type) {
   
 }
 
-function handleSendAll(type, msg) {
+function handleSendAll(type, msg, despatcher) {
   let message = Buffer.from(`${type}:${msg}`);
 
   handleClearKeepAlive(type)
@@ -120,9 +120,11 @@ function handleSendAll(type, msg) {
     let sendList = discoveryServices[type];
 
     sendList.forEach( (destiny, index) => {
-      let {adress} = destiny.address
-      let [sendAdress, port] = String(adress).split(":");
-      socketComunication.send(message, 0, message.length, port, sendAdress);
+      let { address } = destiny
+      let [sendAddress, port] = String(address).split(":");
+      if (sendAddress !== despatcher) {
+        socketComunication.send(message, 0, message.length, port, sendAddress);
+      }
     });
   }
   
