@@ -65,12 +65,15 @@ function handleKeepAlive(service, address) {
   const isValidService = Object.keys(discoveryServices).includes(service);
 
   if (isValidService) {
-    const addressList = discoveryServices[service].map(({address})=>address)
-    const hasOnList = addressList?.includes(address);
+    const isHerSelf =  `${ip.address()}:${SERVICE_PORT}` === address 
 
-    if (hasOnList) {
-      discoveryServices[service].find((element, index)=>{
-        if (element.address === address) {
+    if (!isHerSelf) {
+      const addressList = discoveryServices[service].map(({address})=>address)
+      const hasOnList = addressList?.includes(address);
+      
+      if (hasOnList) {
+        discoveryServices[service].find((element, index)=>{
+          if (element.address === address) {
           discoveryServices[service][index].keepAliveTime = new Date()
         }
       })
@@ -80,10 +83,11 @@ function handleKeepAlive(service, address) {
     }
   }
 }
+}
 
 function handleClearKeepAlive(type) {
   let sendList = discoveryServices[type];
-
+  
   sendList.forEach( (destiny, index) => {
     let { keepAliveTime } = destiny
     if (new Date().getTime() - new Date(keepAliveTime).getTime()  > KEEP_ALIVE_TIME) {
