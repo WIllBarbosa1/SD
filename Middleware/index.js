@@ -4,7 +4,6 @@ const { send } = require("process");
 
 dotenv.config();
 
-const PORT = 8080;
 const SERVICE_PORT = 8080;
 const MULTICAST_PORT = 1900;
 const MULTICAST_ADDRESS = "239.255.255.250";
@@ -28,7 +27,7 @@ function handleStart(serviceType, callbackReciver) {
     const service = String(msg);
     const newAddress = `${address}:${SERVICE_PORT}`;
 
-    handleNewService(service, newAddress);
+    handleKeepAlive(service, newAddress);
   });
 
   socketMultcast.bind(MULTICAST_PORT, () => {
@@ -55,40 +54,77 @@ function handleStart(serviceType, callbackReciver) {
     callbackReciver(type, message);
   });
 
-  socketComunication.bind(PORT, () => {
+  socketComunication.bind(SERVICE_PORT, () => {
     console.log("Socket on");
   });
 }
 
-function handleNewService(service, address) {
+function handleKeepAlive(service, address) {
   const isValidService = Object.keys(discoveryServices).includes(service);
 
   if (isValidService) {
-    const hasOnList = discoveryServices[service]?.includes(address);
+    const addressList = discoveryServices[service].map(({address})=>address)
+    const hasOnList = addressList?.includes(address);
 
-    if (!hasOnList) {
+    if (hasOnList) {
+      discoveryServices[service].find((element, index)=>{
+        if (element.address === address) {
+          discoveryServices[service][index].keepAliveTime = new Date()
+        }
+      })
+    }else{
       console.log(`Novo serviço de ${service} adicionado: ${address}`);
-      discoveryServices[service]?.push(address) || console.log("Error:");
+      discoveryServices[service]?.push({address,keepAliveTime: new Date()}) || console.log("Error:");
     }
   }
 }
 
+function handleClearKeepAlive(type) {
+  let sendList = discoveryServices[type];
+
+  console.log('SendList: ', sendList);
+
+  sendList.forEach( (destiny, index) => {
+    let { keepAliveTime } = destiny
+    if (new Date().getTime() - new Date(keepAliveTime).getTime()  > 1000) {
+      console.log('Lista limpa: ', destiny.address);
+      discoveryServices[type].splice(index, 1)
+    }
+  });
+}
+
 function handleSendOne(msg, type) {
   let message = Buffer.from(`${type}:${msg}`);
-  let [sendDestiny] = discoveryServices[type];
-  let [adress, port] = String(sendDestiny).split(":");
 
-  socketComunication.send(message, 0, message.length, port, adress);
+  handleClearKeepAlive(type)
+
+  if (discoveryServices[type].length === 0) {
+    console.log(`Não existem serviços de ${type} disponiveis, por favor tente novamente em alguns instantes.`);
+  } else {
+    let [sendDestiny] = discoveryServices[type];
+    let [adress, port] = String(sendDestiny.address).split(":");
+
+    socketComunication.send(message, 0, message.length, port, adress);
+  }
+  
 }
 
 function handleSendAll(type, msg) {
   let message = Buffer.from(`${type}:${msg}`);
-  let sendList = discoveryServices[type];
 
-  sendList.forEach( (destiny, index) => {
-    let [adress, port] = String(destiny).split(":");
-    socketComunication.send(message, 0, message.length, port, adress);
-  });
+  handleClearKeepAlive(type)
+  
+  if (discoveryServices[type].length === 0) {
+    console.log(`Não existem serviços de ${type} disponiveis, por favor tente novamente em alguns instantes.`);
+  }else{
+    let sendList = discoveryServices[type];
+
+    sendList.forEach( (destiny, index) => {
+      let {adress} = destiny.address
+      let [sendAdress, port] = String(adress).split(":");
+      socketComunication.send(message, 0, message.length, port, sendAdress);
+    });
+  }
   
 }
 
